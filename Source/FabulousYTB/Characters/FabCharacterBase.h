@@ -4,25 +4,40 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
 #include "FabCharacterBase.generated.h"
 
+//forward declaration for FabCharacterBase
+//as long as don't dereference a pointer, we can do this instead of including whole file header
+class UGameplayAbility;
+class UFabulousAbilitySystemComponent;
+class UFabulousAttributeSet;
+class UGameplayEffect;
+
 UCLASS()
-class FABULOUSYTB_API AFabCharacterBase : public ACharacter
+class FABULOUSYTB_API AFabCharacterBase : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	AFabCharacterBase();
-
+	//IAbilitySystemInterface function - returns the ASC (Ability System Component)
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual UFabulousAttributeSet* GetAttributeSet() const;
+	
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	void GiveDefaultAbilities();
+	void InitDefaultAttributes();
+	//All characters are to be derived from FabCharacterBase and all are to have reference to Ability System Component
+	UPROPERTY()
+	TObjectPtr<UFabulousAbilitySystemComponent> AbilitySystemComponent;
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY()
+	TObjectPtr<UFabulousAttributeSet> AttributeSet;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Ability")
+	TSubclassOf<UGameplayEffect> DefaultAttributeEffect;
 };

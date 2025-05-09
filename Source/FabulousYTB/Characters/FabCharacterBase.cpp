@@ -2,7 +2,7 @@
 
 
 #include "FabCharacterBase.h"
-
+#include "AbilitySystem/FabulousAbilitySystemComponent.h"
 
 // Sets default values
 AFabCharacterBase::AFabCharacterBase()
@@ -11,22 +11,47 @@ AFabCharacterBase::AFabCharacterBase()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
-void AFabCharacterBase::BeginPlay()
+UAbilitySystemComponent* AFabCharacterBase::GetAbilitySystemComponent() const
 {
-	Super::BeginPlay();
+	return AbilitySystemComponent;
+}
+
+UFabulousAttributeSet* AFabCharacterBase::GetAttributeSet() const
+{
+	return AttributeSet;
+}
+
+void AFabCharacterBase::GiveDefaultAbilities()
+{
+	//check if ASC was initialized
+	check(AbilitySystemComponent);
+
+	//only give abilities if local role of the actor has network authority
+	if (!HasAuthority()) return;
+
+	//iterate over all default ability classes
+	for (TSubclassOf<UGameplayAbility> AbilityClass : DefaultAbilities)
+	{
+		//create gameplay ability spec
+		const FGameplayAbilitySpec AbilitySpec(AbilityClass,1);
+
+		AbilitySystemComponent->GiveAbility(AbilitySpec);
+	}
 	
 }
 
-// Called every frame
-void AFabCharacterBase::Tick(float DeltaTime)
+void AFabCharacterBase::InitDefaultAttributes()
 {
-	Super::Tick(DeltaTime);
-}
+	if (!AbilitySystemComponent || !DefaultAttributeEffect) return;
 
-// Called to bind functionality to input
-void AFabCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	const FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffect, 1.f, EffectContext);
+
+	if (SpecHandle.IsValid())
+	{
+		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
 }
 
